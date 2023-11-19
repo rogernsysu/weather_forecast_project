@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Flight List</title>
+</head>
+<body>
+    <h1>Get the Cheap Flight ticket</h1>
+    <form method="get" id="flight-search-form">
+        <label for="origin">Origin:</label>
+        <input type="text" id="origin" name="origin" value="{{ origin }}" required>
+    
+        <label for="destination">Destination:</label>
+        <input type="text" id="destination" name="destination" value="{{ destination }}" required>
+    
+        <label for="departure_date">Departure Date:</label>
+        <input type="date" id="departure_date" name="departure_date" value="{{ departure_date }}" required>
+    
+        <button type="button" id="search-flights-button">Search Flights</button>
+    </form>
+    
+    <div id="flight-results">
+        <table>
+            <tr>
+                <th>Origin</th>
+                <th>Destination</th>
+                <th>Departure Date</th>
+                <th>Return Date</th>
+                <th>Price</th>
+            </tr>
+            {% for flight in flights %}
+            <tr>
+                <td>{{ flight.origin }}</td>
+                <td>{{ flight.destination }}</td>
+                <td>{{ flight.departure_date }}</td>
+                <td>{{ flight.return_date }}</td>
+                <td>{{ flight.price }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const searchFlightsButton = document.getElementById("search-flights-button");
+            const flightResults = document.getElementById("flight-results");
+        
+            searchFlightsButton.addEventListener("click", function() {
+                const origin = document.getElementById("origin").value;
+                const destination = document.getElementById("destination").value;
+                const departureDate = document.getElementById("departure_date").value;
+        
+                // Make an AJAX request to your Django view
+                const xhr = new XMLHttpRequest();
+                xhr.open("GET", `/search_flights/?origin=${origin}&destination=${destination}&departure_date=${departureDate}`, true);
+        
+                xhr.onreadystatechange = function() {
+                    if (xhr.readyState === 4 && xhr.status === 200) {
+                        // Display the flight results returned from the server
+                        flightResults.innerHTML = xhr.responseText;
+                    }
+                };
+        
+                xhr.send();
+            });
+        });
+    </script>
+</body>
+</html>

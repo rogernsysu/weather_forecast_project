@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <title>Weather App</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f2f2f2;
+        }
+
+        #header {
+            background-color: #4285F4;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        #content {
+            width: 30px
+            padding: 20px;
+            text-align: center;
+        }
+
+        #footer {
+            background-color: #4285F4;
+            padding: 10px;
+            text-align: center;
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+        }
+
+        #footer a {
+            color: white;
+            text-decoration: none;
+            margin: 0 10px;
+        }
+
+        #tabs {
+            display: flex;
+            background-color: #f8f9fa;
+            justify-content: center;
+            padding: 10px;
+        }
+
+        #tabs a {
+            margin: 0 10px;
+            text-decoration: none;
+            color: #333;
+            font-weight: bold;
+            transition: color 0.3s ease-in-out;
+        }
+
+        #tabs a:hover {
+            color: #007bff;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="header">
+        <h1>Weather App</h1>
+    </div>
+
+    <div id="tabs">
+        <a href="https://worldweather.wmo.int/tc/home.html">World</a>
+        <a href="{% url 'map' %}">City Details</a>
+        <!--a href="{% url 'plot' %}">Image</a>-->
+    </div>
+
+    <a href="https://www.google.com/maps">
+    <div id="globe-container"></div>
+    </a>
+
+    <div id="footer">
+        <!-- Add any additional footer content here -->
+    </div>
+
+    <script>
+        // Get the container element
+        const container = document.getElementById('globe-container');
+    
+        // Create a scene
+        const scene = new THREE.Scene();
+    
+        // Create a camera
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.3, 5000);
+        
+        camera.rotation.x = THREE.MathUtils.degToRad(0);
+        camera.position.z = 5;
+
+    
+        // Create a WebGL renderer
+        const renderer = new THREE.WebGLRenderer();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        container.appendChild(renderer.domElement);
+        
+        
+        // Create a globe geometry
+        const geometry = new THREE.SphereGeometry(2, 40, 40);
+    
+        // Load a texture (e.g., world map image)
+        const texture = new THREE.TextureLoader().load('https://upload.wikimedia.org/wikipedia/commons/thumb/c/cf/A_large_blank_world_map_with_oceans_marked_in_blue.PNG/2560px-A_large_blank_world_map_with_oceans_marked_in_blue.PNG');
+    
+        // Create a material with the texture
+        const material = new THREE.MeshBasicMaterial({ map: texture });
+    
+        // Create a mesh using the geometry and material
+        const globe = new THREE.Mesh(geometry, material);
+        scene.add(globe);
+    
+        // Add animation loop
+        const animate = () => {
+            requestAnimationFrame(animate);
+            // Rotate the globe here
+            globe.rotation.y += 0.005;
+            renderer.render(scene, camera);
+        };
+    
+        animate();
+    </script>
+
+</body>
+</html>

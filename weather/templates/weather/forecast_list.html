@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.1.0-rc.0/css/select2.min.css" rel="stylesheet" />
+    <title>Map Weather Forecast</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.0/jquery.min.js"></script>
+    <style>
+        .scenery-image {
+            width: 100%;
+            height: 200px; /* Set the desired height */
+            background-size: cover;
+            background-position: center;
+            margin: 10px 0;
+            border-radius: 5px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+        }        
+
+        .gauge {
+            width: 50px;
+            height: 250px;
+            background-color: #f8f9fa;
+            border: 1px solid #ddd;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        /* 温度计内部填充 */
+        .gauge-fill {
+            width: 100%;
+            position: absolute;
+            bottom: 0;
+            background-color: #FF5733; /* 默认红色 */
+            transition: height 0.3s ease-in-out, background-color 0.3s ease-in-out;
+        }
+        
+        /* 根据温度值改变颜色 */
+        .gauge-cold {
+            background-color: #3498db; /* 蓝色 */
+        }
+        
+        .gauge-moderate {
+            background-color: #F39C12; /* 橙色 */
+        }
+        
+        .gauge-hot {
+            background-color: #e74c3c; /* 红色 */
+        }
+
+        .gauge-markings {
+            position: absolute;
+            width: 20%;
+            height: 20%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px;
+        }
+        
+        .gauge-marking {
+            width: 20%;
+            height: 1px;
+            background-color: #ddd;
+        }
+
+        .icon {
+            font-size: 24px;
+            margin-right: 5px;
+        }
+    
+        .high-temp {
+            color: red;
+        }
+    
+        .low-temp {
+            color: blue;
+        }
+    
+        .high-rainfall {
+            color: #006600;
+        }
+    
+        .low-rainfall {
+            color: #0033cc;
+        }
+
+        /* Cloud icon */
+        .cloud-icon {
+            color: #95a5a6; /* Gray color for clouds */
+        }
+
+        /* Rain icon */
+        .rain-icon {
+            color: #3498db; /* Blue color for rain */
+        }
+
+        /* Sun icon */
+        .sun-icon {
+            color: #f39c12; /* Orange color for sun */
+        }
+
+        /* Snow icon */
+        .snow-icon {
+            color: #ffffff; /* White color for snow */
+        }
+
+        /* Fog icon */
+        .fog-icon {
+            color: #bdc3c7; /* Light gray color for fog */
+        }
+
+        /* Storm icon */
+        .storm-icon {
+            color: #e74c3c; /* Red color for storm */
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+        }
+        
+        #sidebar {
+            font-family:Comic Sans MS;
+            background-color: #f8f9fa;
+            width: 300px;
+            padding: 20px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+            z-index: 1;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: left;
+            transition: width 0.5s ease-in-out; /* Add a transition effect */
+            overflow: hidden; /* Hide the sidebar content when minimized */
+        }
+
+        #sidebar.minimized {
+            width: 100px; /* Minimized width */
+        }
+
+        #tempRainContainer {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        #temperatureGauge {
+            width: 50px;
+            height: 250px;
+            display: flex;
+            justify-content: center; /* Center the gauge fill vertically */
+            align-items: flex-end; /* Align the gauge fill to the bottom */
+            margin-left: 10px; /* Add spacing between the temperature/rainfall and gauge */
+        }
+
+        #sidebar:hover {
+            width: 300px; /* Expand sidebar on hover */
+        }
+
+        #citySelect {
+            /* Adjust the height as needed */
+            height: 40px; /* Example height */
+            font-size: 16px; /* Example font size */
+            margin-bottom: 20px; /* Add spacing at the bottom */
+        }
+
+        #informationBox {
+            /* Style the information box */
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin-top: 20px;
+            display: flex;
+            justify-content: space-between; /* Space elements evenly across the container */
+            align-items: center; /* Align elements vertically */
+        }
+
+        #gaugeContainer {
+        align-self: flex-end; /* Align the gauge container to the right */
+        margin-top: 7px; /* Add spacing between the gauge and other paragraphs */
+        }
+
+        #Description{
+            align-self: flex-end; /* Align the gauge container to the right */
+            margin-top: 10px; /* Add spacing between the gauge and other paragraphs */
+            }
+        
+        #content {
+            flex: 1;
+            position: relative;
+            display: flex;
+        }
+        
+        #map {
+            width: 110%;
+            height: 100vh;
+        }
+        /* Apply animations to elements */
+        /* Apply animations to elements */
+        h1.title {
+            font-family:Comic Sans MS;
+            font-size: 35px;
+            margin: 7px 0;
+            position: relative;
+            animation: titleEffect 2s infinite alternate, colorChange 3s infinite;
+        }
+        
+        @keyframes titleEffect {
+            from {
+                transform: translateY(0);
+            }
+            to {
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes colorChange {
+            0% {
+                color: #FFC72C;
+            }
+            50% {
+                color: #4285F4;
+            }
+            100% {
+                color: #FFC72C;
+            }
+        }
+        
+        /* Apply animation to a.link */
+        a.link {
+            text-decoration: none; /* Remove underline */
+            animation: linkEffect 3s infinite;
+            color: #FFC72C; /* Initial link color */
+        }
+        
+        /* Animation for a.link */
+        @keyframes linkEffect {
+            0% {
+                color: #FFC72C;
+            }
+            50% {
+                color: #4285F4;
+            }
+            100% {
+                color: #FFC72C;
+            }
+        }
+    </style>
+</head>
+<body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.1.0-rc.0/js/select2.min.js"></script>
+
+    <div id="sidebar">
+        <h1 class="title" ><a class="link" href="{% url 'home' %}">Weather App</a></h1>
+        <h2>City, Country:</h2>
+        <select id="citySelect" class="js-select2">
+            {% for forecast in forecasts %}
+                <option value="{{ forecast.city }}">{{ forecast.city }}, {{forecast.country}}</option>
+            {% endfor %}
+        </select>
+
+        <div id="informationBox">
+            <div id="tempRainContainer">
+                <h3 id="cityNameCountry" class="js-select2">City Name, Country</h3>
+                
+                <p id="temperature">
+                    <i class="fas fa-thermometer-half icon"></i>
+                    <span class="high-temp">Temperature: -°C</span>    
+                </p>
+
+                <p id="rainfall">
+                    <i class="fas fa-cloud-rain icon"></i>
+                    <span class="high-rainfall">Rainfall: - mm</span>
+                </p>
+
+                <p id="humidity">
+                    <i class="fas fa-hand-holding-water icon"></i>
+                    <span class="high-rainfall">Humidity: -%</span>
+                </p>
+
+                <p id="weatherDescription">
+                    <i class="fas fa-sun icon"></i> <!-- Default weather icon -->
+                    <span id="description" Description: -</span> <!-- Added this line for the description below the information box -->
+                </p>
+
+            </div>
+
+            <div id="gaugeContainer">
+                <div id="temperatureGauge" class="gauge">
+                    <div id="gaugeFill" class="gauge-fill"></div>
+                </div>
+            </div>
+
+        </div>
+
+        <div id="cityScenery" class="scenery-image"></div> <!-- Added this div for the city scenery image -->
+
+    </div>
+
+    <div id="content">
+        <div id="map"></div>
+    </div>
+
+    <script>
+        const sidebar = document.getElementById('sidebar'); // 獲取側邊欄元素
+        const citySelect = document.getElementById('citySelect');
+        const mapDiv = document.getElementById('map');
+        const cityName = document.getElementById('cityNameCountry');
+        const flagImg = document.getElementById('flag');
+        let displayedMarker = null; // Variable to keep track of displayed marker
+        const rainfall = document.getElementById('rainfall');
+        const humidity = document.getElementById('humidity');
+        const gaugeFill = document.getElementById('gaugeFill');
+        const temperatureGauge = document.getElementById('temperatureGauge');
+        const temperatureDial = document.getElementById('temperatureDial');
+        const description = document.getElementById('Description'); // 獲取側邊欄元素
+        // Get the first city's name from the dropdown
+
+        const firstCityName = citySelect.options[0].value;
+        const cityNameElement = document.getElementById('cityNameCountry');
+        // Set the initial city name
+        cityNameElement.textContent = firstCityName;
+        
+        // 获取按钮和 sidebar 元素
+        //const toggleSidebarBtn = document.getElementById('toggleSidebarBtn');
+
+        // 添加点击事件监听器
+        //toggleSidebarBtn.addEventListener('click', () => {
+            //sidebar.classList.toggle('minimized');
+        //});
+
+        // Initialize map and tile layer
+        const map = L.map(mapDiv).setView([35.6895, 139.6917], 10);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        // Create a forecasts object from backend data
+        const forecasts = {
+            {% for forecast in forecasts %}
+                '{{ forecast.city }}': { temperature: {{ forecast.temperature }}, lat: {{ forecast.lat }}, lon: {{ forecast.lon }}, rainfall: {{ forecast.rainfall }}, country: '{{ forecast.country }}', Humidity: {{forecast.humidity }}, description: '{{ forecast.description }}' },
+            {% endfor %}
+        };
+
+        // Event listener for page load to show default city information
+        window.addEventListener('load', () => {
+            const defaultCityName = citySelect.options[0].value;
+            showCityInformation(defaultCityName);
+        });
+
+        // Event listener for city selection
+        //citySelect.addEventListener('change', () => {
+            //const selectedCity = citySelect.value;
+            //showCityInformation(selectedCity);
+        //});
+
+    $(document).ready(function() {
+            $('#citySelect').select2({
+                placeholder: 'Search for a city...',
+                allowClear: true, // Adds a clear button
+                tags: true, // Enable text input and selection
+            });
+
+    
+            // Event listener for city selection from dropdown
+            $('#citySelect').on('select2:select', function(e) {
+                const selectedCity = e.params.data.text;
+                updateCityInformation(selectedCity);
+            });
+    
+            // Event listener for typing city name
+            $('#citySelect').on('change', function(e) {
+                const typedCity = $(this).val();
+                if (displayedMarker) {
+                    map.removeLayer(displayedMarker);
+                }
+                updateCityInformation(typedCity);
+            });
+    });
+
+
+        // Function to update map and information box
+            function updateCityInformation(cityName) {
+                showCityInformation(cityName);
+            }
+
+        // Function to display city information
+        function showCityInformation(x) {
+            // Remove the previously displayed marker if exists
+            //if (displayedMarker) {
+                //map.removeLayer(displayedMarker);
+            //}
+            const selectedForecast = forecasts[x];
+
+            if (selectedForecast) {
+                map.setView([selectedForecast.lat, selectedForecast.lon], 10);
+                newMarker = L.marker([selectedForecast.lat, selectedForecast.lon]).addTo(map)
+                    .bindPopup(`${citySelect.value}<br>` + `Temperature: ${selectedForecast.temperature}°C<br>` +
+                    `Rainfall: ${selectedForecast.rainfall} mm<br>`+
+                    `Humidity: ${selectedForecast.Humidity}%<br>`+
+                    `Weather: ${selectedForecast.description}`)
+                    .openPopup();
+
+                displayedMarker = newMarker;
+
+                // Update information box content
+                const cityNameCountry = `${citySelect.value}, ${selectedForecast.country}`;
+                document.getElementById('cityNameCountry').textContent = cityNameCountry;
+                temperature.innerHTML = `<i class="fas fa-thermometer-half icon"></i> 
+                    <span class="${selectedForecast.temperature > 20 ? 'high-temp' : 'low-temp'}">
+                    Temperature: ${selectedForecast.temperature}°C</span>`;
+                rainfall.innerHTML = `<i class="fas fa-cloud-rain icon"></i> 
+                    <span class="${selectedForecast.rainfall > 10 ? 'high-rainfall' : 'low-rainfall'}">
+                    Rainfall: ${selectedForecast.rainfall} mm</span>`;
+                humidity.innerHTML = `<i class="fas fa-hand-holding-water icon"></i> 
+                    <span class="${selectedForecast.Humidity > 65 ? 'high-rainfall' : 'low-rainfall'}">
+                    Humidity: ${selectedForecast.Humidity}%</span>`;
+
+                // Update temperature gauge fill and color
+                const gaugeColor = getGaugeColor(selectedForecast.temperature);
+                const maxGaugeHeight = 85;
+                const gaugeFillHeight = (selectedForecast.temperature - 5) / 20 * maxGaugeHeight;
+
+                gaugeFill.style.height = `${gaugeFillHeight}px`;
+                gaugeFill.style.backgroundColor = gaugeColor;
+
+                // Function to determine gauge color based on temperature
+                function getGaugeColor(temperature) {
+                    if (temperature < 17) {
+                        return '#3498db'; // Blue color
+                    } else if (temperature >= 17 && temperature < 21) {
+                        return 'Green'; // Green color
+                    } else if (temperature >= 21 && temperature <= 28) {
+                        return '#F39C12'; // Orange color
+                    } else {
+                        return '#e74c3c'; // Red color
+                    }
+                }
+                document.getElementById('description').textContent = `${selectedForecast.description}`;
+                // Update weather icon
+                const weatherIcon = document.getElementById('weatherDescription').querySelector('i');
+                weatherIcon.className = getWeatherIconClass(selectedForecast.description);
+                weatherIcon.style.color = getWeatherIconColor(selectedForecast.description);
+
+                function getWeatherIconClass(description) {
+                    if (description.includes('cloud')) {
+                        return 'fas fa-cloud icon';
+                    } else if (description.includes('rain')) {
+                        return 'fas fa-cloud-rain icon';
+                    } else if (description.includes('sun')) {
+                        return 'fas fa-sun icon';
+                    } else if (description.includes('snow')) {
+                        return 'fas fa-snowflake icon';
+                    } else if (description.includes('fog')) {
+                        return 'fas fa-smog icon';
+                    } else if (description.includes('haze')) {
+                        return 'fas fa-smog icon'; // Red color for storm
+                    } else if (description.includes('storm')) {
+                        return 'fas fa-bolt icon storm-icon'; // You can choose an appropriate storm icon
+                    } else if (description.includes('mist')) {
+                        return 'fas fa-smog icon'; // You can choose an appropriate storm icon
+                    } 
+                    else {
+                        return 'fas fa-sun icon';
+                    }
+                }
+                
+                function getWeatherIconColor(description) {
+                    if (description.includes('cloud')) {
+                        return '#95a5a6'; // Gray color for clouds
+                    } else if (description.includes('rain')) {
+                        return '#3498db'; // Blue color for rain
+                    } else if (description.includes('sun')) {
+                        return '#f39c12'; // Orange color for sun
+                    } else if (description.includes('snow')) {
+                        return '#ffffff'; // White color for snow
+                    } else if (description.includes('fog')) {
+                        return '#bdc3c7'; // Light gray color for fog
+                    } else if (description.includes('storm')) {
+                        return '#e74c3c'; // Red color for storm
+                    } else if (description.includes('haze')) {
+                        return '#95a5a6'; // Red color for storm
+                    } else {
+                        return '#f39c12'; // Default color for unknown conditions
+                    }
+                }
+
+                const cityScenery = document.getElementById('cityScenery');
+                // Call the updateCityScenery function every 10 seconds (adjust the interval as needed)
+                const updateInterval = setInterval(updateCityScenery, 10); // 10 seconds
+                // Call the updateCityScenery function immediately
+                updateCityScenery();
+
+                function updateCityScenery() {
+                    const citySceneryUrl = `https://api.unsplash.com/search/photos?query=${citySelect.value} city&client_id=4t5gSGRHbnWqU6LlcKrUfo3EDZV6_bH3VKv0cBmDQyc`;
+
+                    fetch(citySceneryUrl)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.results && data.results.length > 0) {
+                                const imageUrls = data.results.map(result => result.urls.regular);
+                                let imageUrlIndex = 0;
+            
+                                // Change background images for city scenery
+                                cityScenery.style.backgroundImage = `url('${imageUrls[imageUrlIndex]}')`;
+                                citySceneryBottom.style.backgroundImage = `url('${imageUrls[imageUrlIndex]}')`;
+            
+                                // Increment the imageUrlIndex for the next image
+                                imageUrlIndex = (imageUrlIndex + 1) % imageUrls.length;
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error fetching city scenery:', error);
+                });
+            }
+
+            }
+            }
+
+        // Add click event listener to toggle sidebar minimize/maximize
+            h1.title.addEventListener('click', () => {
+            sidebar.classList.toggle('minimized');
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Trip Planner - {{ trip.title }}</title>
+</head>
+<body>
+    <h1>{{ trip.title }}</h1>
+    <p><strong>Start Date:</strong> {{ trip.start_date|date:'F d, Y' }}</p>
+    <p><strong>End Date:</strong> {{ trip.end_date|date:'F d, Y' }}</p>
+
+    <h2>Activities</h2>
+    <ul>
+        {% for activity in activities %}
+            <li>
+                <strong>{{ activity.title }}</strong>
+                ({{ activity.date|date:'F d, Y' }})
+                <p>{{ activity.description }}</p>
+            </li>
+        {% empty %}
+            <li>No activities planned for this trip.</li>
+        {% endfor %}
+    </ul>
+</body>
+</html>
